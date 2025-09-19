@@ -26,51 +26,44 @@
       const container = document.getElementById("output");
       container.innerHTML = "";
 
-      // Ambil daftar tabel dari schema public
-      let { data: tables, error } = await client
-        .rpc("get_tables"); // pakai function custom? kalau ga ada, fallback ke query
+      // Ambil semua tabel dengan RPC list_tables
+      let { data: tables, error } = await client.rpc("list_tables");
 
       if (error) {
-        // fallback: query langsung ke information_schema
-        let { data, error: err } = await client
-          .from("information_schema.tables")
-          .select("table_name")
-          .eq("table_schema", "public");
-
-        if (err) {
-          container.innerHTML = "❌ Gagal ambil tabel: " + err.message;
-          return;
-        }
-        tables = data.map(d => ({ table_name: d.table_name }));
+        container.innerHTML = "❌ Gagal ambil tabel: " + error.message;
+        return;
       }
 
       for (let tbl of tables) {
-        const tableName = tbl.table_name || tbl;
+        const tableName = tbl.table_name;
         let { data, error } = await client.from(tableName).select("*");
 
-        let html = `<h2>${tableName}</h2>`;
+        // Jika error atau tabel kosong
         if (error) {
-          html += `<p style="color:red;">❌ ${error.message}</p>`;
-        } else if (data.length === 0) {
-          html += `<p><i>(kosong)</i></p>`;
-        } else {
-          // buat header tabel
-          html += "<table><thead><tr>";
-          for (let col of Object.keys(data[0])) {
-            html += `<th>${col}</th>`;
-          }
-          html += "</tr></thead><tbody>";
-
-          // isi data
-          for (let row of data) {
-            html += "<tr>";
-            for (let col of Object.keys(row)) {
-              html += `<td>${row[col] ?? ""}</td>`;
-            }
-            html += "</tr>";
-          }
-          html += "</tbody></table>";
+          container.innerHTML += `<h2>${tableName}</h2><p style="color:red;">❌ ${error.message}</p>`;
+          continue;
         }
+        if (!data || data.length === 0) {
+          container.innerHTML += `<h2>${tableName}</h2><p><i>(kosong)</i></p>`;
+          continue;
+        }
+
+        // Render tabel
+        let html = `<h2>${tableName}</h2><table><thead><tr>`;
+        for (let col of Object.keys(data[0])) {
+          html += `<th>${col}</th>`;
+        }
+        html += "</tr></thead><tbody>";
+
+        for (let row of data) {
+          html += "<tr>";
+          for (let col of Object.keys(row)) {
+            html += `<td>${row[col] ?? ""}</td>`;
+          }
+          html += "</tr>";
+        }
+        html += "</tbody></table>";
+
         container.innerHTML += html;
       }
     }
