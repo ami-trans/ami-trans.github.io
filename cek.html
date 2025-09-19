@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <title>Cek Semua Tabel</title>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+    h2 { background: #333; color: #fff; padding: 6px; }
+    table { border-collapse: collapse; margin-bottom: 40px; width: 100%; background: white; }
+    th, td { border: 1px solid #aaa; padding: 6px; text-align: left; }
+    th { background: #ddd; }
+  </style>
+</head>
+<body>
+  <h1>📋 Cek Semua Tabel & Isinya</h1>
+  <div id="output">Loading...</div>
+
+  <script>
+    const supabaseUrl = "https://yxppbwrfggbgoyaiigjs.supabase.co";
+    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl4cHBid3JmZ2diZ295YWlpZ2pzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgzMDk2NTEsImV4cCI6MjA3Mzg4NTY1MX0.DBRShZgj4wjMBdS6uqz0-bWtI-oaExNv_lJes4yHP_M";
+
+    const client = supabase.createClient(supabaseUrl, supabaseKey);
+
+    async function loadTables() {
+      const container = document.getElementById("output");
+      container.innerHTML = "";
+
+      // Ambil daftar tabel dari schema public
+      let { data: tables, error } = await client
+        .rpc("get_tables"); // pakai function custom? kalau ga ada, fallback ke query
+
+      if (error) {
+        // fallback: query langsung ke information_schema
+        let { data, error: err } = await client
+          .from("information_schema.tables")
+          .select("table_name")
+          .eq("table_schema", "public");
+
+        if (err) {
+          container.innerHTML = "❌ Gagal ambil tabel: " + err.message;
+          return;
+        }
+        tables = data.map(d => ({ table_name: d.table_name }));
+      }
+
+      for (let tbl of tables) {
+        const tableName = tbl.table_name || tbl;
+        let { data, error } = await client.from(tableName).select("*");
+
+        let html = `<h2>${tableName}</h2>`;
+        if (error) {
+          html += `<p style="color:red;">❌ ${error.message}</p>`;
+        } else if (data.length === 0) {
+          html += `<p><i>(kosong)</i></p>`;
+        } else {
+          // buat header tabel
+          html += "<table><thead><tr>";
+          for (let col of Object.keys(data[0])) {
+            html += `<th>${col}</th>`;
+          }
+          html += "</tr></thead><tbody>";
+
+          // isi data
+          for (let row of data) {
+            html += "<tr>";
+            for (let col of Object.keys(row)) {
+              html += `<td>${row[col] ?? ""}</td>`;
+            }
+            html += "</tr>";
+          }
+          html += "</tbody></table>";
+        }
+        container.innerHTML += html;
+      }
+    }
+
+    loadTables();
+  </script>
+</body>
+</html>
