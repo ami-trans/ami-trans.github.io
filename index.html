@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Ami Trans - Login</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script defer src="supabase.js"></script>
+  <script defer src="script.js"></script>
+</head>
+<body>
+  <div class="login-wrapper">
+    <div class="login-card">
+      <img src="https://i.imgur.com/b76PczO.png" alt="Ami Trans Logo" class="logo" />
+      <h2>Ami Trans</h2>
+      <form id="loginForm">
+        <div class="input-group">
+          <input type="email" id="email" placeholder="Email" required />
+        </div>
+        <div class="input-group">
+          <input type="password" id="password" placeholder="Password" required />
+        </div>
+        <button type="submit">Login</button>
+        <div class="error" id="errorMsg"></div>
+      </form>
+    </div>
+  </div>
+</body>
+</html>
