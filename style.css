@@ -1,0 +1,111 @@
+/* RESET */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, #009B4D, #FFCC00);
+  background-size: 200% 200%;
+  animation: gradientShift 8s ease infinite;
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* CARD */
+.login-card {
+  background: rgba(250, 245, 233, 0.2); /* putih gading transparan */
+  backdrop-filter: blur(20px);
+  border-radius: 16px;
+  padding: 28px 24px;
+  width: 300px;
+  text-align: center;
+  box-shadow: 0 15px 40px rgba(0,0,0,0.25);
+  animation: float 5s ease-in-out infinite;
+  border: 1px solid rgba(250, 245, 233, 0.3);
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* LOGO */
+.logo {
+  width: 75px;
+  border-radius: 18%;
+  margin-bottom: 15px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.2);
+}
+
+/* TITLE */
+h2 {
+  color: #FAF5E9;
+  margin-bottom: 20px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  font-size: 20px;
+}
+
+/* INPUT */
+.input-group {
+  margin-bottom: 14px;
+}
+
+input {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(250,245,233,0.25);
+  color: #FAF5E9;
+  font-size: 14px;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+input::placeholder {
+  color: #e6dfd0;
+}
+
+input:focus {
+  background: rgba(250,245,233,0.35);
+  box-shadow: 0 0 0 2px #FFCC00;
+}
+
+/* BUTTON */
+button {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(135deg, #009B4D, #FFCC00);
+  border: none;
+  border-radius: 10px;
+  color: #FAF5E9;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.3s ease;
+}
+
+button:hover {
+  transform: scale(1.03);
+  background: linear-gradient(135deg, #FFCC00, #009B4D);
+}
+
+/* ERROR */
+.error {
+  margin-top: 12px;
+  color: #ff6b6b;
+  font-size: 13px;
+  min-height: 16px;
+}
