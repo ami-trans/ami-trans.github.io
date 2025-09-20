@@ -30,13 +30,13 @@ form.addEventListener("submit", async (e) => {
   // redirect sesuai role
   switch (profile.role) {
     case "spv":
-      window.location.href = "dashboard.html";
+      window.location.href = "ami/dashboard.html";
       break;
     case "kasir":
-      window.location.href = "kasir.html";
+      window.location.href = "ami/kasir.html";
       break;
     case "unit":
-      window.location.href = "unit.html";
+      window.location.href = "ami/unit.html";
       break;
     default:
       errorMsg.textContent = "Role tidak dikenali.";
