@@ -18,13 +18,14 @@ const driverName = document.getElementById("driverName");
 // Load customers
 async function loadCustomers() {
   try {
-    const { data, error } = await supabase
-      .from("customers")
-      .select("*")
-      .order("nama", { ascending: true });
+    const { data, error } = await supabase.from("customers").select("*").order("nama");
+    console.log("Customer data:", data, "Error:", error); // debug
+
     if (error) throw error;
+    if (!data) return;
 
     customerSelect.innerHTML = "<option value=''>-- Pilih Customer --</option>";
+
     data.forEach(c => {
       const option = document.createElement("option");
       option.value = c.id;
@@ -40,7 +41,6 @@ async function loadCustomers() {
     console.error("Gagal load customer:", err.message);
   }
 }
-loadCustomers();
 
 // Update Origin setelah pilih customer
 customerSelect.addEventListener("change", () => {
