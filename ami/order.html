@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AmiTrans - Order</title>
+  <link rel="stylesheet" href="css/order.css">
+  <!-- Supabase CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/supabase.min.js"></script>
+  <script src="js/order.js" defer></script>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="nav-left">
+      <button class="hamburger" id="hamburger">☰</button>
+      <img src="https://i.imgur.com/ivZMmoZ.png" alt="AmiTrans Logo" class="logo">
+    </div>
+    <button class="logout" onclick="logout()">⎋</button>
+  </nav>
+
+  <!-- Dropdown menu -->
+  <div class="dropdown-menu" id="dropdownMenu">
+    <a href="dashboard.html">Dashboard</a>
+    <a href="order.html">Order Assignment</a>
+    <a href="kasir.html">Kasir</a>
+    <a href="unit.html">Unit</a>
+    <a href="history.html">Order History</a>
+    <a href="location.html">Location</a>
+  </div>
+
+  <!-- Order Form -->
+  <main class="container">
+    <h2>Buat Order Baru</h2>
+    <form id="orderForm" class="form-card">
+      <label for="customerSelect">Customer</label>
+      <select id="customerSelect"></select>
+
+      <label for="origin">Origin</label>
+      <select id="origin"></select>
+
+      <label for="destination">Destination</label>
+      <select id="destination"></select>
+
+      <label for="typeUnit">Type Unit</label>
+      <select id="typeUnit"></select>
+
+      <label for="price">Harga</label>
+      <input type="text" id="price" readonly>
+
+      <label for="uangJalan">Uang Jalan</label>
+      <input type="text" id="uangJalan" readonly>
+
+      <label for="vehicleSelect">Kendaraan (Nopol)</label>
+      <select id="vehicleSelect"></select>
+
+      <label for="driverName">Nama Driver</label>
+      <input type="text" id="driverName" readonly>
+
+      <div class="actions">
+        <button type="submit" class="btn-assign">Assign</button>
+        <button type="button" class="btn-cancel" onclick="resetForm()">Cancel</button>
+      </div>
+    </form>
+  </main>
+</body>
+</html>
