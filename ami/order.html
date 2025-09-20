@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ami Trans - Order</title>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="css/order.css">
+
+  <!-- JS -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script defer src="../supabase.js"></script>
+  <script defer src="../script.js"></script>
+  <script defer src="js/order.js"></script>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="navbar-left">
+      <div class="hamburger" id="hamburger" onclick="toggleMenu()">
+        <span></span><span></span><span></span>
+      </div>
+      <img src="https://i.imgur.com/ivZMmoZ.png" alt="Ami Trans Logo" class="logo">
+      <span class="brand">AmiTrans</span>
+    </div>
+    <div class="navbar-right">
+      <img src="https://cdn-icons-png.flaticon.com/512/1828/1828490.png" alt="Logout" class="logout" onclick="logout()">
+    </div>
+  </nav>
+
+  <!-- Dropdown Menu -->
+  <div class="dropdown-menu" id="dropdownMenu">
+    <a href="dashboard.html">📊 Dashboard</a>
+    <a href="order.html" class="active">📝 Order</a>
+    <a href="kasir.html">💵 Kasir</a>
+    <a href="unit.html">🚐 Unit</a>
+    <a href="history.html">📜 Order History</a>
+  </div>
+
+  <!-- Content -->
+  <main class="content">
+    <div class="card">
+      <h3>Buat Order Baru</h3>
+      <form id="orderForm">
+        <label for="customerSelect">Nama Customer</label>
+        <select id="customerSelect" required></select>
+
+        <label for="origin">Origin</label>
+        <input type="text" id="origin" readonly>
+
+        <label for="destination">Destination</label>
+        <input type="text" id="destination" readonly>
+
+        <label for="typeUnit">Type Unit</label>
+        <input type="text" id="typeUnit" readonly>
+
+        <label for="price">Price</label>
+        <input type="number" id="price" readonly>
+
+        <label for="uangJalan">Uang Jalan</label>
+        <input type="number" id="uangJalan" readonly>
+
+        <label for="vehicleSelect">Pilih Kendaraan (Nopol)</label>
+        <select id="vehicleSelect" required></select>
+
+        <label for="driverName">Nama Driver</label>
+        <input type="text" id="driverName" readonly>
+
+        <div class="form-actions">
+          <button type="submit" class="btn assign">Assign</button>
+          <button type="button" class="btn cancel" onclick="resetForm()">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </main>
+</body>
+</html>
