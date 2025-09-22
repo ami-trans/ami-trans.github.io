@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unit - Order</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet"/>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Poppins", sans-serif;
+      background: linear-gradient(135deg, #009B4D, #FFCC00, #009B4D);
+      background-size: 300% 300%;
+      animation: gradientMove 12s ease infinite;
+      min-height: 100vh; padding: 20px;
+    }
+    @keyframes gradientMove {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    h2 { text-align: center; color: #fff; margin-bottom: 20px; }
+    .container {
+      background: rgba(250,245,233,0.95);
+      padding: 20px;
+      border-radius: 14px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      max-width: 1000px;
+      margin: auto;
+      overflow-x: auto;
+    }
+    table {
+      border-collapse: collapse; width: 100%;
+    }
+    th, td {
+      padding: 10px; text-align: center;
+      border: 1px solid #ccc; font-size: 14px;
+    }
+    th { background: #009B4D; color: #fff; }
+    button {
+      padding: 6px 12px;
+      border: none; border-radius: 6px;
+      cursor: pointer; font-weight: 600;
+      background: linear-gradient(135deg, #009B4D, #FFCC00);
+      color: #fff; transition: transform .2s;
+    }
+    button:hover { transform: scale(1.05); }
+  </style>
+</head>
+<body>
+  <h2>Daftar Order Unit</h2>
+  <div class="container">
+    <table>
+      <thead>
+        <tr>
+          <th>Customer</th>
+          <th>Origin</th>
+          <th>Destination</th>
+          <th>Type Unit</th>
+          <th>Price</th>
+          <th>Uang Jalan</th>
+          <th>Tanggal</th>
+          <th>Status</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+
+  <!-- Hidden file input -->
+  <input type="file" id="fileInput" accept="image/*" style="display:none"/>
+
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script>
+    const supabaseUrl = "https://yxppbwrfggbgoyaiigjs.supabase.co";
+    const supabaseKey = "YOUR_PUBLIC_ANON_KEY"; // ganti dengan anon key mu
+    const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+    let currentUnitId = null;
+    let uploadOrderId = null;
+    let uploadNextStatus = null;
+
+    // Init login check
+    async function initUnit() {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error || !user) {
+        alert("Silakan login ulang");
+        window.location.href = "../index.html";
+        return;
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("id, role, nama, nopol")
+        .eq("id", user.id)
+        .single();
+
+      if (profileError || !profile || profile.role !== "unit") {
+        alert("Kamu bukan unit!");
+        window.location.href = "../index.html";
+        return;
+      }
+
+      currentUnitId = profile.id;
+      console.log("✅ Login sebagai UNIT:", profile.nama, profile.nopol);
+      loadOrders();
+    }
+
+    // Load orders untuk unit ini
+    async function loadOrders() {
+      const { data, error } = await supabase
+        .from("orders")
+        .select("*")
+        .eq("unit_id", currentUnitId)
+        .order("created_at", { ascending: false });
+
+      const tbody = document.getElementById("tableBody");
+      if (error) {
+        tbody.innerHTML = "<tr><td colspan='9'>Gagal ambil data</td></tr>";
+        return;
+      }
+      if (!data || data.length === 0) {
+        tbody.innerHTML = "<tr><td colspan='9'>Belum ada order</td></tr>";
+        return;
+      }
+
+      tbody.innerHTML = data.map(o => `
+        <tr>
+          <td>${o.nama}</td>
+          <td>${o.origin}</td>
+          <td>${o.destination}</td>
+          <td>${o.type_unit}</td>
+          <td>${new Intl.NumberFormat("id-ID").format(o.price)}</td>
+          <td>${new Intl.NumberFormat("id-ID").format(o.uang_jalan)}</td>
+          <td>${o.tanggal ? new Date(o.tanggal).toLocaleString("id-ID") : "-"}</td>
+          <td>${o.status}</td>
+          <td>${renderActions(o)}</td>
+        </tr>
+      `).join("");
+    }
+
+    // Tampilkan tombol aksi sesuai status
+    function renderActions(order) {
+      switch (order.status) {
+        case "Assignment":
+          return `<button onclick="updateStatus('${order.id}','Accepted')">Accept</button>`;
+        case "Accepted":
+          return `<button onclick="updateStatus('${order.id}','Mulai Muat')">Mulai Muat</button>`;
+        case "Mulai Muat":
+          return `<button onclick="prepareUpload('${order.id}','Selesai Muat')">Upload Surat Jalan</button>`;
+        case "Selesai Muat":
+          return `<em>Menunggu kasir...</em>`;
+        case "Kasir Done":
+          return `<button onclick="updateStatus('${order.id}','Mulai Bongkar')">Mulai Bongkar</button>`;
+        case "Mulai Bongkar":
+          return `<button onclick="prepareUpload('${order.id}','Selesai Bongkar')">Upload Surat Jalan</button>`;
+        case "Selesai Bongkar":
+          return `<button onclick="updateStatus('${order.id}','Standby')">Standby</button>`;
+        default:
+          return `<em>Selesai</em>`;
+      }
+    }
+
+    // Update status biasa (tanpa upload)
+    async function updateStatus(orderId, status) {
+      const { error } = await supabase.from("orders").update({ status }).eq("id", orderId);
+      if (error) alert("Gagal update: " + error.message);
+      loadOrders();
+    }
+
+    // Trigger upload
+    function prepareUpload(orderId, nextStatus) {
+      uploadOrderId = orderId;
+      uploadNextStatus = nextStatus;
+      document.getElementById("fileInput").click();
+    }
+
+    // Upload surat jalan
+    document.getElementById("fileInput").addEventListener("change", async (e) => {
+      const file = e.target.files[0];
+      if (!file || !uploadOrderId) return;
+
+      const noSurat = prompt("Masukkan nomor surat jalan:");
+      if (!noSurat) return;
+
+      const fileExt = file.name.split(".").pop();
+      const filePath = `${uploadOrderId}/${Date.now()}.${fileExt}`;
+
+      // Upload ke bucket suratjalan
+      const { error: uploadError } = await supabase.storage
+        .from("suratjalan")
+        .upload(filePath, file);
+
+      if (uploadError) {
+        alert("Gagal upload: " + uploadError.message);
+        return;
+      }
+
+      // Ambil URL publik
+      const { data: { publicUrl } } = supabase.storage.from("suratjalan").getPublicUrl(filePath);
+
+      // Simpan ke orders
+      const { error: updateError } = await supabase.from("orders")
+        .update({ 
+          surat_jalan_no: noSurat, 
+          surat_jalan_foto: publicUrl, 
+          status: uploadNextStatus 
+        })
+        .eq("id", uploadOrderId);
+
+      if (updateError) {
+        alert("Gagal update order: " + updateError.message);
+      } else {
+        alert("Surat jalan berhasil diupload ✅");
+      }
+
+      // Reset
+      uploadOrderId = null;
+      uploadNextStatus = null;
+      e.target.value = "";
+      loadOrders();
+    });
+
+    initUnit();
+  </script>
+</body>
+</html>
