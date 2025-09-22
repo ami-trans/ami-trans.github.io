@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Buat Order Baru</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet"/>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Poppins", sans-serif;
+      background: linear-gradient(135deg, #009B4D, #FFCC00, #009B4D);
+      background-size: 300% 300%;
+      animation: gradientMove 12s ease infinite;
+      min-height: 100vh;
+    }
+    @keyframes gradientMove {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    .navbar {
+      display: flex; justify-content: space-between; align-items: center;
+      background: #FAF5E9; padding: 10px 18px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      position: sticky; top: 0; z-index: 1000;
+      border-radius: 0 0 14px 14px;
+    }
+    .navbar-left { display: flex; align-items: center; gap: 10px; }
+    .navbar-left img { height: 28px; width: 28px; border-radius: 8px; }
+    .navbar-left h1 { font-size: 18px; margin: 0; color: #009B4D; }
+    .btn {
+      background: linear-gradient(135deg, #009B4D, #FFCC00);
+      color: #fff; border: none; padding: 8px 16px;
+      border-radius: 8px; cursor: pointer; font-weight: 600;
+      transition: transform 0.2s ease;
+    }
+    .btn:hover { transform: scale(1.05); }
+    .container {
+      max-width: 900px; margin: 20px auto; padding: 20px;
+      background: rgba(250,245,233,0.9); border-radius: 14px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15); backdrop-filter: blur(6px);
+    }
+    .form-group { margin-bottom: 14px; }
+    label { display: block; font-weight: 600; margin-bottom: 6px; }
+    input, select {
+      width: 100%; padding: 10px;
+      border: 1px solid #ccc; border-radius: 8px;
+      font-size: 14px;
+    }
+    input[readonly] { background: #f5f5f5; }
+    .actions { margin-top: 20px; display: flex; gap: 10px; }
+    .toast {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: #009B4D; color: #fff; padding: 10px 16px;
+      border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      opacity: 0; transition: opacity 0.4s ease;
+    }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <div class="navbar">
+    <div class="navbar-left">
+      <img src="https://i.imgur.com/ivZMmoZ.png" alt="icon">
+      <h1>Buat Order Baru</h1>
+    </div>
+    <button class="btn" onclick="window.location.href='dashboard.html'">← Dashboard</button>
+  </div>
+
+  <!-- Container -->
+  <div class="container">
+    <form id="orderForm">
+      <!-- Customer Section -->
+      <div class="form-group">
+        <label>Nama Customer</label>
+        <select id="customerSelect" required></select>
+      </div>
+      <div class="form-group">
+        <label>Origin</label>
+        <select id="origin" required></select>
+      </div>
+      <div class="form-group">
+        <label>Destination</label>
+        <select id="destination" required></select>
+      </div>
+      <div class="form-group">
+        <label>Type Unit</label>
+        <select id="type_unit" required></select>
+      </div>
+      <div class="form-group">
+        <label>Price (Rp)</label>
+        <input type="text" id="price" readonly>
+      </div>
+      <div class="form-group">
+        <label>Uang Jalan (Rp)</label>
+        <input type="text" id="uang_jalan" readonly>
+      </div>
+      <div class="form-group">
+        <label>Tanggal</label>
+        <input type="text" id="tanggal" readonly>
+      </div>
+
+      <!-- Unit Section -->
+      <div class="form-group">
+        <label>Nopol</label>
+        <select id="unitSelect" required></select>
+      </div>
+      <div class="form-group">
+        <label>Nama Driver</label>
+        <input type="text" id="driver" readonly>
+      </div>
+      <div class="form-group">
+        <label>Type Unit Kendaraan</label>
+        <input type="text" id="unit_type" readonly>
+      </div>
+
+      <!-- Actions -->
+      <div class="actions">
+        <button type="submit" class="btn">Assign</button>
+        <button type="button" class="btn" onclick="document.getElementById('orderForm').reset()">Cancel</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast"></div>
+
+  <!-- Supabase -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script>
+    const supabaseUrl = "https://yxppbwrfggbgoyaiigjs.supabase.co";
+    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl4cHBid3JmZ2diZ295YWlpZ2pzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgzMDk2NTEsImV4cCI6MjA3Mzg4NTY1MX0.DBRShZgj4wjMBdS6uqz0-bWtI-oaExNv_lJes4yHP_M"; 
+    const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+    let customers = [];
+    let units = [];
+
+    function showToast(msg, success = true) {
+      const toast = document.getElementById("toast");
+      toast.textContent = msg;
+      toast.style.background = success ? "#009B4D" : "#e53935";
+      toast.classList.add("show");
+      setTimeout(() => toast.classList.remove("show"), 3000);
+    }
+
+    async function loadCustomers() {
+      const { data, error } = await supabaseClient.from("customers").select("*");
+      if (error) return console.error(error);
+      customers = data || [];
+
+      const select = document.getElementById("customerSelect");
+      select.innerHTML = "<option value=''>Pilih Customer</option>";
+      [...new Set(customers.map(c => c.nama))].forEach(n => {
+        select.innerHTML += `<option value="${n}">${n}</option>`;
+      });
+    }
+
+    async function loadUnits() {
+      const { data, error } = await supabaseClient.from("profiles").select("*").eq("role", "driver");
+      if (error) return console.error(error);
+      units = data || [];
+    }
+
+    // Cascade dropdown
+    document.getElementById("customerSelect").addEventListener("change", (e) => {
+      const custName = e.target.value;
+      const custs = customers.filter(c => c.nama === custName);
+
+      const originSelect = document.getElementById("origin");
+      originSelect.innerHTML = "<option value=''>Pilih Origin</option>";
+      [...new Set(custs.map(c => c.origin))].forEach(o => {
+        originSelect.innerHTML += `<option value="${o}">${o}</option>`;
+      });
+
+      document.getElementById("destination").innerHTML = "<option value=''>Pilih Destination</option>";
+      document.getElementById("type_unit").innerHTML = "<option value=''>Pilih Type Unit</option>";
+    });
+
+    document.getElementById("origin").addEventListener("change", (e) => {
+      const custName = document.getElementById("customerSelect").value;
+      const custs = customers.filter(c => c.nama === custName && c.origin === e.target.value);
+
+      const destSelect = document.getElementById("destination");
+      destSelect.innerHTML = "<option value=''>Pilih Destination</option>";
+      [...new Set(custs.map(c => c.destination))].forEach(d => {
+        destSelect.innerHTML += `<option value="${d}">${d}</option>`;
+      });
+
+      document.getElementById("type_unit").innerHTML = "<option value=''>Pilih Type Unit</option>";
+    });
+
+    document.getElementById("destination").addEventListener("change", (e) => {
+      const custName = document.getElementById("customerSelect").value;
+      const origin = document.getElementById("origin").value;
+      const custs = customers.filter(c => c.nama === custName && c.origin === origin && c.destination === e.target.value);
+
+      const typeSelect = document.getElementById("type_unit");
+      typeSelect.innerHTML = "<option value=''>Pilih Type Unit</option>";
+      [...new Set(custs.map(c => c.type_unit))].forEach(t => {
+        typeSelect.innerHTML += `<option value="${t}">${t}</option>`;
+      });
+    });
+
+    document.getElementById("type_unit").addEventListener("change", (e) => {
+      const custName = document.getElementById("customerSelect").value;
+      const origin = document.getElementById("origin").value;
+      const dest = document.getElementById("destination").value;
+      const type = e.target.value;
+
+      const cust = customers.find(c => c.nama === custName && c.origin === origin && c.destination === dest && c.type_unit === type);
+      if (cust) {
+        document.getElementById("price").value = new Intl.NumberFormat("id-ID").format(cust.price);
+        document.getElementById("uang_jalan").value = new Intl.NumberFormat("id-ID").format(cust.uang_jalan);
+        document.getElementById("tanggal").value = new Date().toLocaleString("id-ID");
+
+        // filter unit
+        const unitSelect = document.getElementById("unitSelect");
+        unitSelect.innerHTML = "<option value=''>Pilih Nopol</option>";
+        units.filter(u => u.type_unit === cust.type_unit).forEach(u => {
+          unitSelect.innerHTML += `<option value="${u.id}">${u.nopol}</option>`;
+        });
+      }
+    });
+
+    document.getElementById("unitSelect").addEventListener("change", (e) => {
+      const unit = units.find(u => String(u.id) === e.target.value);
+      if (unit) {
+        document.getElementById("driver").value = unit.nama;
+        document.getElementById("unit_type").value = unit.type_unit;
+      }
+    });
+
+    // Submit
+    document.getElementById("orderForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const custName = document.getElementById("customerSelect").value;
+      const origin = document.getElementById("origin").value;
+      const dest = document.getElementById("destination").value;
+      const type = document.getElementById("type_unit").value;
+      const unit = units.find(u => String(u.id) === document.getElementById("unitSelect").value);
+      const cust = customers.find(c => c.nama === custName && c.origin === origin && c.destination === dest && c.type_unit === type);
+
+      if (!cust || !unit) {
+        showToast("Customer dan Unit harus dipilih!", false);
+        return;
+      }
+
+      const { error } = await supabaseClient.from("orders").insert([{
+        customer_id: cust.id,
+        nama: cust.nama,
+        origin: cust.origin,
+        destination: cust.destination,
+        type_unit: cust.type_unit,
+        price: cust.price,
+        uang_jalan: cust.uang_jalan,
+        unit_id: unit.id,
+        nopol: unit.nopol,
+        driver: unit.nama,
+        status: "Assignment",
+        created_at: new Date().toISOString()
+      }]);
+
+      if (error) {
+        showToast("Gagal assign order: " + error.message, false);
+      } else {
+        showToast("Order berhasil dibuat");
+        document.getElementById("orderForm").reset();
+      }
+    });
+
+    loadCustomers();
+    loadUnits();
+  </script>
+</body>
+</html>
