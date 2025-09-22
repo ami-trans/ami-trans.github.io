@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Kasir - Orders</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet"/>
+  <style>
+    body {
+      font-family: "Poppins", sans-serif;
+      margin: 0;
+      background: linear-gradient(135deg, #009B4D, #FFCC00, #009B4D);
+      background-size: 300% 300%;
+      animation: gradientMove 12s ease infinite;
+      min-height: 100vh;
+    }
+    @keyframes gradientMove {
+      0% { background-position: 0% 50% }
+      50% { background-position: 100% 50% }
+      100% { background-position: 0% 50% }
+    }
+    .navbar {
+      background: #faf5e9;
+      padding: 12px 20px;
+      display: flex; justify-content: space-between; align-items: center;
+      border-radius: 0 0 14px 14px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    h1 { font-size: 18px; color: #009B4D; margin: 0; }
+    .container { max-width: 1000px; margin: 20px auto; background: rgba(255,255,255,0.9); padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+    .filters { margin-bottom: 16px; display: flex; gap: 10px; flex-wrap: wrap; }
+    .filters input { padding: 6px 10px; border-radius: 6px; border: 1px solid #ccc; }
+    .btn { background: linear-gradient(135deg, #009B4D, #FFCC00); color: #fff; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-status-belum { background: #e53935; }
+    .btn-status-sudah { background: #009B4D; }
+    .order-card { padding: 16px; border: 1px solid #ddd; border-radius: 10px; margin-bottom: 14px; background: #fff; }
+    .order-card h3 { margin-top: 0; font-size: 16px; }
+    .order-card p { margin: 4px 0; font-size: 14px; }
+    img.preview { margin-top: 8px; max-width: 200px; display: block; border-radius: 6px; cursor: pointer; }
+    .modal { display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.7); justify-content:center; align-items:center; }
+    .modal img { max-width:90%; max-height:90%; border-radius:10px; }
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #009B4D; color: #fff; padding: 10px 16px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); opacity: 0; transition: opacity .4s; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+  <div class="navbar">
+    <h1>Kasir - Orders</h1>
+    <button class="btn" onclick="logout()">Logout</button>
+  </div>
+
+  <div class="container">
+    <div class="filters">
+      <input type="text" id="searchInput" placeholder="Cari nama / nopol / driver..." oninput="applyFilters()"/>
+      <button class="btn" onclick="setFilter('all')">Semua</button>
+      <button class="btn" onclick="setFilter('Belum')">Belum</button>
+      <button class="btn" onclick="setFilter('Sudah')">Sudah</button>
+    </div>
+    <div id="ordersList">Loading...</div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <!-- Modal preview foto -->
+  <div id="photoModal" class="modal" onclick="this.style.display='none'">
+    <img id="modalImage" src=""/>
+  </div>
+
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script>
+    const supabaseUrl = "https://yxppbwrfggbgoyaiigjs.supabase.co";
+    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl4cHBid3JmZ2diZ295YWlpZ2pzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgzMDk2NTEsImV4cCI6MjA3Mzg4NTY1MX0.DBRShZgj4wjMBdS6uqz0-bWtI-oaExNv_lJes4yHP_M"; // ganti dengan anon key kamu
+    const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+    let allOrders = [];
+    let currentFilter = "all";
+
+    async function loadOrders() {
+      const { data, error } = await supabaseClient.from("orders").select("*").order("created_at", { ascending: false });
+      if (error) { console.error(error); return; }
+      allOrders = data;
+      renderOrders();
+    }
+
+    function applyFilters() {
+      const searchText = document.getElementById("searchInput").value.toLowerCase();
+      const filtered = allOrders.filter(order => {
+        const matchSearch = order.nama?.toLowerCase().includes(searchText) ||
+                            order.nopol?.toLowerCase().includes(searchText) ||
+                            order.driver?.toLowerCase().includes(searchText);
+        const matchFilter = currentFilter === "all" || order.status_transfer === currentFilter;
+        return matchSearch && matchFilter;
+      });
+      renderOrders(filtered);
+    }
+
+    function setFilter(filter) {
+      currentFilter = filter === "all" ? "all" : filter;
+      applyFilters();
+    }
+
+    function renderOrders(data = allOrders) {
+      const container = document.getElementById("ordersList");
+      if (!data.length) { container.innerHTML = "<p>Tidak ada order.</p>"; return; }
+      container.innerHTML = "";
+      data.forEach(order => {
+        container.innerHTML += renderOrder(order);
+      });
+    }
+
+    function renderOrder(order) {
+      const btnStatus = order.status_transfer === "Sudah"
+        ? `<button class="btn btn-status-sudah" disabled>Sudah</button>`
+        : `<button class="btn btn-status-belum" onclick="updateTransfer('${order.id}')">Belum</button>`;
+
+      const foto = order.surat_jalan_foto
+        ? `<img src="${order.surat_jalan_foto}" class="preview" onclick="showPhoto('${order.surat_jalan_foto}')"/>`
+        : `<p><i>Tidak ada foto surat jalan</i></p>`;
+
+      return `
+        <div class="order-card">
+          <h3>${order.nama} (${order.origin} → ${order.destination})</h3>
+          <p><b>Nopol:</b> ${order.nopol} | <b>Driver:</b> ${order.driver}</p>
+          <p><b>Status Order:</b> ${order.status}</p>
+          <p><b>Status Transfer:</b> ${btnStatus}</p>
+          <div><b>Surat Jalan:</b><br>${foto}</div>
+        </div>
+      `;
+    }
+
+    async function updateTransfer(orderId) {
+      const { error } = await supabaseClient.from("orders").update({ status_transfer: "Sudah" }).eq("id", orderId);
+      if (error) { console.error(error); showToast("Update gagal", false); return; }
+      showToast("Status transfer diperbarui");
+      loadOrders();
+    }
+
+    function showPhoto(url) {
+      document.getElementById("modalImage").src = url;
+      document.getElementById("photoModal").style.display = "flex";
+    }
+
+    function showToast(msg, success = true) {
+      const toast = document.getElementById("toast");
+      toast.textContent = msg;
+      toast.style.background = success ? "#009B4D" : "#e53935";
+      toast.classList.add("show");
+      setTimeout(() => toast.classList.remove("show"), 3000);
+    }
+
+    function logout() {
+      supabaseClient.auth.signOut();
+      window.location.href = "../index.html";
+    }
+
+    loadOrders();
+  </script>
+</body>
+</html>
