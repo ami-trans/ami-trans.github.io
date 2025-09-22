@@ -169,32 +169,43 @@
       }
 
       // History orders
-      const historyContainer = document.getElementById("historyList");
-      if (!historyOrders.length) historyContainer.innerHTML = "<p>Belum ada history order.</p>";
-      else {
-        let table = `<div class="table-wrapper"><table>
-          <thead>
-            <tr>
-              <th>Customer</th><th>Origin</th><th>Destination</th><th>Type Unit</th>
-              <th>Nopol</th><th>Driver</th><th>Tanggal</th><th>Status</th>
-              <th>No SJ</th><th>Foto SJ</th>
-            </tr>
-          </thead><tbody>`;
-        historyOrders.forEach(order => {
-          table += `<tr>
-            <td>${order.nama}</td>
-            <td>${order.origin}</td>
-            <td>${order.destination}</td>
-            <td>${order.type_unit}</td>
-            <td>${order.tanggal || "-"}</td>
-            <td>${order.surat_jalan_no || "-"}</td>
-            <td>${order.surat_jalan_foto ? `<img src="${order.surat_jalan_foto}" style="max-height:50px; cursor:pointer;" onclick="showPhoto('${order.surat_jalan_foto}')"/>` : "-"}</td>
-          </tr>`;
-        });
-        table += "</tbody></table></div>";
-        historyContainer.innerHTML = table;
-      }
-    }
+const historyContainer = document.getElementById("historyList");
+if (!historyOrders.length) {
+  historyContainer.innerHTML = "<p>Belum ada history order.</p>";
+} else {
+  let table = `<div class="table-wrapper"><table>
+    <thead>
+      <tr>
+        <th>Customer</th>
+        <th>Origin</th>
+        <th>Destination</th>
+        <th>Type Unit</th>
+        <th>Nopol</th>
+        <th>Driver</th>
+        <th>Tanggal</th>
+        <th>Status</th>
+        <th>No SJ</th>
+        <th>Foto SJ</th>
+      </tr>
+    </thead>
+    <tbody>`;
+  historyOrders.forEach(order => {
+    table += `<tr>
+      <td>${order.nama}</td>
+      <td>${order.origin}</td>
+      <td>${order.destination}</td>
+      <td>${order.type_unit}</td>
+      <td>${order.nopol}</td>
+      <td>${order.driver}</td>
+      <td>${order.tanggal || "-"}</td>
+      <td>${order.status}</td>
+      <td>${order.surat_jalan_no || "-"}</td>
+      <td>${order.surat_jalan_foto ? `<img src="${order.surat_jalan_foto}" style="max-height:50px; cursor:pointer;" onclick="showPhoto('${order.surat_jalan_foto}')"/>` : "-"}</td>
+    </tr>`;
+  });
+  table += `</tbody></table></div>`;
+  historyContainer.innerHTML = table;
+}
 
     function renderOrder(order) {
       let actions = "";
