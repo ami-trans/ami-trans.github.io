@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Ami Trans - Dashboard Premium</title>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <!-- Supabase -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    :root{ --green:#009B4D; --yellow:#FFCC00; --card-bg: rgba(250,245,233,0.85); }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:"Poppins",sans-serif;background:linear-gradient(135deg,#009B4D,#FFCC00,#009B4D);
+      background-size:300% 300%;animation:gradientMove 12s ease infinite;min-height:100vh;color:#333;}
+    /* Navbar */
+    .navbar{display:flex;justify-content:space-between;align-items:center;background:#FAF5E9;padding:8px 16px;
+      box-shadow:0 2px 8px rgba(0,0,0,0.12);position:sticky;top:0;z-index:2000;height:54px;border-radius:0 0 14px 14px;}
+    .navbar-left{display:flex;align-items:center;gap:10px;}
+    .logo{height:30px;border-radius:8px;}
+    .brand{font-weight:600;font-size:16px;color:var(--green);}
+    .hamburger{cursor:pointer;display:flex;flex-direction:column;gap:4px;}
+    .hamburger span{width:20px;height:3px;background:var(--green);border-radius:3px;transition:all .3s;}
+    .hamburger.active span:nth-child(1){transform:rotate(45deg) translate(5px,5px);}
+    .hamburger.active span:nth-child(2){opacity:0;}
+    .hamburger.active span:nth-child(3){transform:rotate(-45deg) translate(6px,-6px);}
+    .logout{height:22px;cursor:pointer;transition:transform .2s;}
+    .logout:hover{transform:scale(1.1);}
+    /* Dropdown */
+    .dropdown-menu{position:absolute;top:54px;left:10px;right:10px;z-index:2500;
+      background:linear-gradient(135deg,rgba(0,155,77,0.85),rgba(255,204,0,0.75));
+      backdrop-filter:blur(12px);border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,0.25);
+      display:none;flex-direction:column;padding:10px;animation:dropdownOpen .25s ease;}
+    .dropdown-menu a{padding:12px 14px;border-radius:12px;text-decoration:none;color:#FAF5E9;font-weight:500;
+      transition:background .3s,transform .2s;}
+    .dropdown-menu a.active{border-left:4px solid var(--yellow);}
+    .dropdown-menu a:hover{background:rgba(250,245,233,0.2);transform:translateX(6px);}
+    /* Content */
+    .content{padding:16px;}
+    .grid{display:grid;gap:20px;}
+    @media(min-width:1100px){.grid{grid-template-columns:1fr 1fr 1fr;}}
+    @media(min-width:768px) and (max-width:1099px){.grid{grid-template-columns:1fr 1fr;}}
+    @media(max-width:767px){.grid{grid-template-columns:1fr;}}
+    /* Card */
+    .card{background:var(--card-bg);backdrop-filter:blur(6px);border-radius:20px;padding:18px;
+      box-shadow:4px 4px 10px rgba(0,0,0,0.15),-4px -4px 10px rgba(255,255,255,0.5);
+      transition:transform .18s,box-shadow .18s;}
+    .card:hover{transform:translateY(-6px);box-shadow:0 12px 30px rgba(0,0,0,0.22);}
+    .card-header{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:600;margin-bottom:10px;color:var(--green);}
+    .kpi-value{font-size:26px;font-weight:700;margin-bottom:6px;
+      background:linear-gradient(90deg,var(--green),var(--yellow));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+    .kpi-sub{font-size:13px;color:#666;margin-bottom:12px;}
+    #topUnitList li{display:flex;justify-content:space-between;align-items:center;padding:8px 0;
+      border-bottom:1px dashed rgba(0,0,0,0.04);}
+    .badge{padding:6px 10px;border-radius:999px;font-weight:600;font-size:13px;color:#fff;}
+    .badge-green{background:linear-gradient(90deg,#00C853,#66F08A);}
+    .badge-yellow{background:linear-gradient(90deg,#FFD600,#FF9100);}
+    /* Modal */
+    .modal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);
+      justify-content:center;align-items:center;z-index:3000;}
+    .modal-content{background:#FAF5E9;border-radius:16px;padding:20px;width:90%;max-width:360px;text-align:center;
+      box-shadow:0 8px 20px rgba(0,0,0,.25);}
+    .modal-actions{margin-top:16px;display:flex;justify-content:space-between;gap:10px;}
+    .btn{padding:8px 14px;border-radius:8px;border:none;cursor:pointer;font-weight:600;}
+    .btn.cancel{background:#ccc;color:#333;}
+    .btn.confirm{background:var(--green);color:#fff;}
+    @keyframes gradientMove{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+    @keyframes dropdownOpen{from{opacity:0;transform:translateY(-10px) scale(.95)}to{opacity:1;transform:translateY(0) scale(1)}}
+
+    /* Marker efek */
+    .pulse-green { animation: pulseGreen 2s infinite; }
+    @keyframes pulseGreen {
+      0% { box-shadow:0 0 0 0 rgba(0,200,0,.6); }
+      70%{ box-shadow:0 0 0 15px rgba(0,200,0,0); }
+      100%{ box-shadow:0 0 0 0 rgba(0,200,0,0); }
+    }
+    .blink-red { animation: blinkRed 1s infinite; }
+    @keyframes blinkRed { 0%,100%{opacity:1;}50%{opacity:.4;} }
+    .static-black { border:2px solid black; }
+    /* Legend */
+    .map-legend {
+      position:absolute;bottom:12px;right:12px;
+      background:rgba(250,245,233,.9);padding:8px 12px;
+      border-radius:8px;font-size:13px;box-shadow:0 4px 10px rgba(0,0,0,.2);
+      line-height:1.6;
+    }
+    .map-legend span{display:inline-block;width:12px;height:12px;margin-right:6px;border-radius:50%;}
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="navbar-left">
+      <div class="hamburger" id="hamburger" onclick="toggleMenu()">
+        <span></span><span></span><span></span>
+      </div>
+      <img src="https://i.imgur.com/ivZMmoZ.png" alt="Ami Trans Logo" class="logo">
+      <span class="brand">AmiTrans</span>
+    </div>
+    <div class="navbar-right">
+      <img src="https://cdn-icons-png.flaticon.com/512/1828/1828490.png" alt="Logout" class="logout" onclick="openLogoutModal()">
+    </div>
+  </nav>
+
+  <!-- Dropdown Menu -->
+  <div class="dropdown-menu" id="dropdownMenu">
+    <a href="./dashboard.html" class="active">📊 Dashboard</a>
+    <a href="./vehicle.html">🚐 Vehicle Status</a>
+    <a href="./order.html">📝 Order Assignment</a>
+    <a href="./history.html">📜 Order History</a>
+    <a href="./location.html">📍 Location</a>
+    <a href="./user.html">👤 User</a>
+    <a href="./customer.html">👥 Customer</a>
+  </div>
+
+  <!-- Content -->
+  <main class="content">
+    <div class="grid">
+      <!-- Card Jumlah Order -->
+      <div class="card">
+        <div class="card-header">📦 Jumlah Order</div>
+        <div class="kpi-value" id="orderTotal">0</div>
+        <div class="kpi-sub">Total order keseluruhan</div>
+        <canvas id="orderChart" height="200"></canvas>
+      </div>
+
+      <!-- Card Pendapatan -->
+      <div class="card">
+        <div class="card-header">💵 Total Pendapatan</div>
+        <div class="kpi-value" id="revenueTotal">Rp 0</div>
+        <div class="kpi-sub">Akumulasi semua transaksi</div>
+        <canvas id="revenueChart" height="200"></canvas>
+      </div>
+
+      <!-- Card Status Kendaraan -->
+      <div class="card">
+        <div class="card-header">🗺️ Status Kendaraan</div>
+        <div class="kpi-sub">Lokasi unit dengan status jalan/berhenti/rusak</div>
+        <div id="map" style="height:300px;border-radius:12px;overflow:hidden;position:relative;"></div>
+      </div>
+
+      <!-- Card Top Customer -->
+      <div class="card">
+        <div class="card-header">👥 Top Customer</div>
+        <div class="kpi-sub">5 pelanggan dengan order terbanyak</div>
+        <canvas id="customerChart" height="220"></canvas>
+      </div>
+
+      <!-- Card Top Unit -->
+      <div class="card">
+        <div class="card-header">🚐 Top Unit (Nopol)</div>
+        <div class="kpi-sub">Kendaraan paling banyak dipakai</div>
+        <ul id="topUnitList" style="list-style:none;padding:0;margin:0;font-size:15px;"></ul>
+      </div>
+    </div>
+  </main>
+
+  <!-- Logout Modal -->
+  <div class="modal" id="logoutModal">
+    <div class="modal-content">
+      <h3>Konfirmasi Logout</h3>
+      <p>Apakah Anda yakin ingin keluar?</p>
+      <div class="modal-actions">
+        <button class="btn cancel" onclick="closeLogoutModal()">Batal</button>
+        <button class="btn confirm" onclick="logout()">Ya, Logout</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Supabase setup
+    const supabaseUrl = "https://yxppbwrfggbgoyaiigjs.supabase.co";
+    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl4cHBid3JmZ2diZ295YWlpZ2pzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgzMDk2NTEsImV4cCI6MjA3Mzg4NTY1MX0.DBRShZgj4wjMBdS6uqz0-bWtI-oaExNv_lJes4yHP_M";
+    const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+    // Navbar toggle
+    function toggleMenu(){const m=document.getElementById("dropdownMenu"),b=document.getElementById("hamburger");
+      const a=m.style.display==="flex";m.style.display=a?"none":"flex";b.classList.toggle("active",!a);}
+    document.addEventListener("click",e=>{const m=document.getElementById("dropdownMenu"),b=document.getElementById("hamburger");
+      if(!m.contains(e.target)&&!b.contains(e.target)){m.style.display="none";b.classList.remove("active");}});
+
+    // Logout modal
+    function openLogoutModal(){document.getElementById("logoutModal").style.display="flex";}
+    function closeLogoutModal(){document.getElementById("logoutModal").style.display="none";}
+    function logout(){window.location.href="../index.html";}
+
+    // Charts
+    let orderChart=null,revenueChart=null,customerChart=null;
+    function formatRupiah(n){return "Rp "+(Number(n)||0).toLocaleString("id-ID");}
+
+    async function loadOrderChart(){
+      const {data}=await supabase.from("order_history").select("type_unit");
+      const counts={};data.forEach(o=>{const k=o.type_unit||"Unknown";counts[k]=(counts[k]||0)+1;});
+      document.getElementById("orderTotal").textContent=Object.values(counts).reduce((a,b)=>a+b,0)+" Order";
+      const ctx=document.getElementById("orderChart").getContext("2d");
+      if(orderChart)orderChart.destroy();
+      orderChart=new Chart(ctx,{type:"bar",data:{labels:Object.keys(counts),datasets:[{data:Object.values(counts),backgroundColor:"#009B4D",borderRadius:8}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
+    }
+
+    async function loadRevenueChart(){
+      const {data}=await supabase.from("order_history").select("created_at,price");
+      const revenueByDate={};let total=0;
+      data.forEach(o=>{const d=(o.created_at||"").split("T")[0];const p=Number(o.price)||0;revenueByDate[d]=(revenueByDate[d]||0)+p;total+=p;});
+      document.getElementById("revenueTotal").textContent=formatRupiah(total);
+      const ctx=document.getElementById("revenueChart").getContext("2d");
+      if(revenueChart)revenueChart.destroy();
+      revenueChart=new Chart(ctx,{type:"line",data:{labels:Object.keys(revenueByDate).sort(),datasets:[{data:Object.values(revenueByDate),borderColor:"#FFCC00",backgroundColor:"rgba(255,204,0,0.3)",fill:true,tension:0.35,pointBackgroundColor:"#009B4D",pointRadius:4}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
+    }
+
+    async function loadCustomerChart(){
+      const {data}=await supabase.from("order_history").select("customer_name");
+      const counts={};data.forEach(o=>{if(o.customer_name)counts[o.customer_name]=(counts[o.customer_name]||0)+1;});
+      const sorted=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,5);
+      if(customerChart)customerChart.destroy();
+      customerChart=new Chart(document.getElementById("customerChart"),{type:"bar",data:{labels:sorted.map(x=>x[0]),datasets:[{data:sorted.map(x=>x[1]),backgroundColor:"#009B4D"}]},options:{indexAxis:"y",plugins:{legend:{display:false}},scales:{x:{beginAtZero:true}}}});
+    }
+
+    async function loadTopUnit(){
+      const {data}=await supabase.from("order_history").select("nopol");
+      const counts={};data.forEach(o=>{if(o.nopol)counts[o.nopol]=(counts[o.nopol]||0)+1;});
+      const sorted=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,5);
+      const ul=document.getElementById("topUnitList");ul.innerHTML="";
+      sorted.forEach(([n,j],i)=>{const li=document.createElement("li");const badge=(i%2===0)?"badge badge-green":"badge badge-yellow";
+        li.innerHTML=`<div><strong>${i+1}. ${n}</strong> — ${j} order</div><span class="${badge}">${j}</span>`;ul.appendChild(li);});
+    }
+
+    // Map dummy
+    function loadMap(){
+      const unitData=[
+        {nopol:"B 1234 CD",lat:-6.200,lng:106.816,status:"jalan"},
+        {nopol:"B 5678 EF",lat:-6.210,lng:106.826,status:"berhenti"},
+        {nopol:"B 9999 ZZ",lat:-6.220,lng:106.836,status:"rusak"},
+        {nopol:"B 4321 XY",lat:-6.190,lng:106.806,status:"jalan"}
+      ];
+      const map=L.map("map").setView([-6.200,106.816],13);
+      L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",{attribution:"&copy; OSM &copy; CARTO",subdomains:"abcd",maxZoom:19}).addTo(map);
+      const colors={jalan:"green",berhenti:"red",rusak:"black"};
+      unitData.forEach(u=>{
+        const m=L.circleMarker([u.lat,u.lng],{
+          radius:10,color:colors[u.status],fillColor:colors[u.status],fillOpacity:.9,
+          className:u.status==="jalan"?"pulse-green":(u.status==="berhenti"?"blink-red":"static-black")
+        }).addTo(map);
+        m.bindPopup(`<b>${u.nopol}</b><br>Status: ${u.status}`);
+      });
+      // legend manual
+      const legend=document.createElement("div");
+      legend.className="map-legend";
+      legend.innerHTML=`
+        <div><span style="background:green"></span> Jalan</div>
+        <div><span style="background:red"></span> Berhenti</div>
+        <div><span style="background:black"></span> Rusak</div>`;
+      document.getElementById("map").appendChild(legend);
+    }
+
+    document.addEventListener("DOMContentLoaded",async()=>{
+      await loadOrderChart();await loadRevenueChart();await loadCustomerChart();await loadTopUnit();loadMap();
+    });
+  </script>
+</body>
+</html>
